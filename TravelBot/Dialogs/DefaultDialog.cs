@@ -1,4 +1,5 @@
 ﻿using Microsoft.Bot.Builder.Dialogs;
+using Microsoft.Bot.Builder.FormFlow;
 using Microsoft.Bot.Builder.Luis;
 using Microsoft.Bot.Builder.Luis.Models;
 using Microsoft.Bot.Connector;
@@ -42,16 +43,13 @@ namespace TravelBot.Dialogs
             if (location != null)
             {
                 await context.PostAsync("You want to travel to " + location.Entity + "!");
-            } 
+                context.Wait(MessageReceived);
+            }
             else // The user needs to enter a location before getting destination suggestions
             {
-                //await context.PostAsync("Please include a country, state, or city when asking for travel destinations.");
-                await context.Forward(new EnterLocationDialog(), HandleDestinationSearch, location, new CancellationToken());
-                
-
-                //context.Call(new EnterLocationDialog(), HandleDestinationSearch);
+                var prompt = "What country, state, or city would you like to find travel suggestions for?";
+                PromptDialog.Text(context, HandleDestinationSearch, prompt);
             }
-            context.Wait(MessageReceived);
         }
 
         private async Task HandleDestinationSearch(IDialogContext context, IAwaitable<object> result)
@@ -72,7 +70,7 @@ namespace TravelBot.Dialogs
             }
             else // The user needs to enter a location before getting destination suggestions
             {
-                await context.PostAsync("Please include a country, state, or city when searching for news.");
+                //await context.PostAsync("Please include a country, state, or city when searching for news.");
             }
 
             // handle request
