@@ -1,14 +1,11 @@
-﻿using Microsoft.Bot.Builder.Dialogs;
-using Microsoft.Bot.Builder.FormFlow;
+﻿using System;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 using Microsoft.Bot.Builder.Luis;
+using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Builder.Luis.Models;
 using Microsoft.Bot.Connector;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Web;
 
 namespace TravelBot.Dialogs
 {
@@ -52,9 +49,9 @@ namespace TravelBot.Dialogs
             }
         }
 
-        private async Task HandleDestinationSearch(IDialogContext context, IAwaitable<object> result)
+        private async Task HandleDestinationSearch(IDialogContext context, IAwaitable<string> result)
         {
-            await context.PostAsync("I am handling your request");
+            await context.PostAsync("I am handling your request to search locations near " + result.GetAwaiter().GetResult());
             context.Wait(MessageReceived);
         }
 
@@ -70,11 +67,16 @@ namespace TravelBot.Dialogs
             }
             else // The user needs to enter a location before getting destination suggestions
             {
-                //await context.PostAsync("Please include a country, state, or city when searching for news.");
+                var prompt = "What country, state, or city would you like to find news for?";
+                PromptDialog.Text(context, HandleNewsSearch, prompt);
             }
 
-            // handle request
+            context.Wait(MessageReceived);
+        }
 
+        private async Task HandleNewsSearch(IDialogContext context, IAwaitable<object> result)
+        {
+            await context.PostAsync("I am handling your request to get news from " + result.GetAwaiter().GetResult());
             context.Wait(MessageReceived);
         }
 
