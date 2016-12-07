@@ -6,6 +6,11 @@ using Microsoft.Bot.Builder.Luis;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Builder.Luis.Models;
 using Microsoft.Bot.Connector;
+using System.Web.Configuration;
+using System.Net.Http;
+using System.Web;
+using TravelBot.JsonDeserialization;
+using Newtonsoft.Json;
 
 namespace TravelBot.Dialogs
 {
@@ -64,19 +69,49 @@ namespace TravelBot.Dialogs
             if (location != null)
             {
                 await context.PostAsync("You want news from " + location.Entity + "!");
+                // Now that we have the location to search for news about, we are ready to call the API
+                HandleNewsSearch(context, location.Entity);
             }
             else // The user needs to enter a location before getting destination suggestions
             {
                 var prompt = "What country, state, or city would you like to find news for?";
-                PromptDialog.Text(context, HandleNewsSearch, prompt);
+                PromptDialog.Text(context, GetNewsLocation, prompt);
             }
-
-            context.Wait(MessageReceived);
         }
 
-        private async Task HandleNewsSearch(IDialogContext context, IAwaitable<object> result)
+        private async Task GetNewsLocation(IDialogContext context, IAwaitable<string> result)
         {
-            await context.PostAsync("I am handling your request to get news from " + result.GetAwaiter().GetResult());
+            await context.PostAsync("I am handling your request to get news from " + result.GetAwaiter().GetResult().ToString());
+
+            // Now that we have the location to search for news about, we are ready to call the API
+            HandleNewsSearch(context, result.GetAwaiter().GetResult().ToString());
+        }
+
+        private async void HandleNewsSearch(IDialogContext context, string location)
+        {
+            var client = new HttpClient();
+            var queryString = HttpUtility.ParseQueryString(string.Empty);
+
+            // Request headers
+            client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", WebConfigurationManager.AppSettings["CogServices:NewsSearch:ID"]);
+
+            // Request parameters
+            queryString["q"] = "News about " + location;
+            queryString["count"] = "10";
+            queryString["offset"] = "0";
+            queryString["mkt"] = "en-US";
+            queryString["safeSearch"] = "Moderate";
+            var uri = "https://api.cognitive.microsoft.com/bing/v5.0/news/search?" + queryString;
+            var response = await client.GetAsync(uri);
+
+            HttpContent resultContent = response.Content;
+            var result = await resultContent.ReadAsStringAsync();
+
+            // Populate a JSON object with the results of the API call
+            NewsResult news = new NewsResult();
+            JsonConvert.PopulateObject(result, news);
+
+            await context.PostAsync("I have some responses to your search.");
             context.Wait(MessageReceived);
         }
 

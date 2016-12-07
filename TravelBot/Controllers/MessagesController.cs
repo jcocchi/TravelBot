@@ -1,14 +1,10 @@
-﻿using System;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Net.Http;
-using System.Threading.Tasks;
 using System.Web.Http;
-using System.Web.Http.Description;
-using Microsoft.Bot.Connector;
-using Newtonsoft.Json;
-using Microsoft.Bot.Builder.Dialogs;
 using TravelBot.Dialogs;
+using System.Threading.Tasks;
+using Microsoft.Bot.Connector;
+using Microsoft.Bot.Builder.Dialogs;
 
 namespace TravelBot
 {
