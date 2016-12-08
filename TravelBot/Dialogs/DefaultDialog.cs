@@ -64,30 +64,36 @@ namespace TravelBot.Dialogs
         public async Task GetNews(IDialogContext context, LuisResult result)
         {
             var location = GetLocation(new List<EntityRecommendation>(result.Entities));
+            string prompt;
 
             // If the user specified a location
             if (location != null)
             {
-                await context.PostAsync("You want news from " + location.Entity + "!");
-                // Now that we have the location to search for news about, we are ready to call the API
-                HandleNewsSearch(context, location.Entity);
-            }
+                // Now that we have the location to search for news about, call the API
+                var news = CallNewsAPI(location.Entity);
+
+                await context.PostAsync("I found you " + news.Result.totalEstimatedMatches + " articles about " + location + ".");
+            } 
             else // The user needs to enter a location before getting destination suggestions
             {
-                var prompt = "What country, state, or city would you like to find news for?";
+                prompt = "What country, state, or city would you like to find news for?";
                 PromptDialog.Text(context, GetNewsLocation, prompt);
             }
         }
 
         private async Task GetNewsLocation(IDialogContext context, IAwaitable<string> result)
         {
-            await context.PostAsync("I am handling your request to get news from " + result.GetAwaiter().GetResult().ToString());
+            var location = result.GetAwaiter().GetResult().ToString();
+            await context.PostAsync("I am handling your request to get news from " + location + ".");
 
-            // Now that we have the location to search for news about, we are ready to call the API
-            HandleNewsSearch(context, result.GetAwaiter().GetResult().ToString());
+            // Now that we have the location to search for news about, call the API
+            var news = await CallNewsAPI(location);
+
+            await context.PostAsync("I found you " + news.totalEstimatedMatches + " articles about " + location + ".");
+            context.Wait(MessageReceived);
         }
 
-        private async void HandleNewsSearch(IDialogContext context, string location)
+        private async Task<NewsResult> CallNewsAPI(string location)
         {
             var client = new HttpClient();
             var queryString = HttpUtility.ParseQueryString(string.Empty);
@@ -96,7 +102,7 @@ namespace TravelBot.Dialogs
             client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", WebConfigurationManager.AppSettings["CogServices:NewsSearch:ID"]);
 
             // Request parameters
-            queryString["q"] = "News about " + location;
+            queryString["q"] = "Travel related news about " + location;
             queryString["count"] = "10";
             queryString["offset"] = "0";
             queryString["mkt"] = "en-US";
@@ -111,8 +117,7 @@ namespace TravelBot.Dialogs
             NewsResult news = new NewsResult();
             JsonConvert.PopulateObject(result, news);
 
-            await context.PostAsync("I have some responses to your search.");
-            context.Wait(MessageReceived);
+            return news;
         }
 
         [LuisIntent("GetWeather")]
