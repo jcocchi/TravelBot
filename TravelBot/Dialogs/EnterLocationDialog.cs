@@ -23,6 +23,7 @@ namespace TravelBot.Dialogs
         {
             var message = await result;
             await context.PostAsync("You said " + message);
+
             context.Done(message);
         }
     }

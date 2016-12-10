@@ -32,7 +32,10 @@ namespace TravelBot.Dialogs
         [LuisIntent("Greeting")]
         public async Task Greeting(IDialogContext context, LuisResult result)
         {
-            await context.PostAsync("Hello! How can I assist you with your travels today?");
+            await context.PostAsync("Hello! How can I assist you with your travels today?\n" +
+                                        "- Search for a travel destinatation\n" +
+                                        "- Check the weather in a location\n" +
+                                        "- Check the current news in a location\n");
             context.Wait(MessageReceived);
         }
 
@@ -70,10 +73,14 @@ namespace TravelBot.Dialogs
             if (location != null)
             {
                 // Now that we have the location to search for news about, call the API
-                var news = CallNewsAPI(location.Entity);
+                var news = await CallNewsAPI(location.Entity);
 
-                await context.PostAsync("I found you " + news.Result.totalEstimatedMatches + " articles about " + location + ".");
-            } 
+                // Create and display the news results
+                await context.PostAsync(MakeNewsCards(context, news));
+
+                //await context.PostAsync("I found you " + news.totalEstimatedMatches + " articles about " + location + ".");
+                context.Wait(MessageReceived);
+            }
             else // The user needs to enter a location before getting destination suggestions
             {
                 prompt = "What country, state, or city would you like to find news for?";
@@ -89,7 +96,10 @@ namespace TravelBot.Dialogs
             // Now that we have the location to search for news about, call the API
             var news = await CallNewsAPI(location);
 
-            await context.PostAsync("I found you " + news.totalEstimatedMatches + " articles about " + location + ".");
+            // Create and display the news results
+            await context.PostAsync(MakeNewsCards(context, news));
+
+            //await context.PostAsync("I found you " + news.totalEstimatedMatches + " articles about " + location + ".");
             context.Wait(MessageReceived);
         }
 
@@ -103,7 +113,7 @@ namespace TravelBot.Dialogs
 
             // Request parameters
             queryString["q"] = "Travel related news about " + location;
-            queryString["count"] = "10";
+            queryString["count"] = "4";
             queryString["offset"] = "0";
             queryString["mkt"] = "en-US";
             queryString["safeSearch"] = "Moderate";
@@ -118,6 +128,29 @@ namespace TravelBot.Dialogs
             JsonConvert.PopulateObject(result, news);
 
             return news;
+        }
+
+        private IMessageActivity MakeNewsCards(IDialogContext context, NewsResult news)
+        {
+            var resultMessage = context.MakeMessage();
+            resultMessage.AttachmentLayout = AttachmentLayoutTypes.Carousel;
+            resultMessage.Attachments = new List<Attachment>();
+            foreach (var item in news.value)
+            {
+                ThumbnailCard thumbnailCard = new ThumbnailCard()
+                {
+                    Title = item.name,
+                    Text = item.description,
+                    Images = new List<CardImage>()
+                    {
+                        new CardImage() { Url = item.image.thumbnail.contentUrl }
+                    },
+                };
+
+                resultMessage.Attachments.Add(thumbnailCard.ToAttachment());
+            }
+
+            return resultMessage;
         }
 
         [LuisIntent("GetWeather")]
