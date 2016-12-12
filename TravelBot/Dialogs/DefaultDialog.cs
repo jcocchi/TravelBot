@@ -65,7 +65,7 @@ namespace TravelBot.Dialogs
 
         private async Task HandleDestinationSearch(IDialogContext context, IAwaitable<string> result)
         {
-            var location = result.GetAwaiter().GetResult().ToString();
+            var location = await result;
             await context.PostAsync("I am handling your request to search for destinations near " + location + ".");
 
             // Now that we have the location to search for news about, call the API
@@ -102,7 +102,7 @@ namespace TravelBot.Dialogs
 
         private async Task GetNewsLocation(IDialogContext context, IAwaitable<string> result)
         {
-            var location = result.GetAwaiter().GetResult().ToString();
+            var location = await result;
             await context.PostAsync("I am handling your request to get news from " + location + ".");
 
             // Now that we have the location to search for news about, call the API

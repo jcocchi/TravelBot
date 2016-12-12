@@ -3,36 +3,6 @@ using System.Collections.Generic;
 
 namespace TravelBot.JsonDeserialization
 {
-    public class Instrumentation
-    {
-        public string pingUrlBase { get; set; }
-        public string pageLoadPingUrl { get; set; }
-    }
-
-    public class Thumbnail
-    {
-        public string contentUrl { get; set; }
-        public int width { get; set; }
-        public int height { get; set; }
-    }
-
-    public class Image
-    {
-        public Thumbnail thumbnail { get; set; }
-    }
-
-    public class About
-    {
-        public string readLink { get; set; }
-        public string name { get; set; }
-    }
-
-    public class Provider
-    {
-        public string _type { get; set; }
-        public string name { get; set; }
-    }
-
     public class NewsValue
     {
         public string name { get; set; }
