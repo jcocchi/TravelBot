@@ -48,6 +48,12 @@ namespace TravelBot.Dialogs
             if (location != null)
             {
                 await context.PostAsync("You want to travel to " + location.Entity + "!");
+
+                var destinations = await CallSearchAPI(location.Entity, "destination");
+
+                // Create and display the news results
+                //await context.PostAsync(MakeNewsCards(context, (NewsResult)news));
+                await context.PostAsync("I have found " + (DestinationResult)destinations);
                 context.Wait(MessageReceived);
             }
             else // The user needs to enter a location before getting destination suggestions
@@ -59,7 +65,15 @@ namespace TravelBot.Dialogs
 
         private async Task HandleDestinationSearch(IDialogContext context, IAwaitable<string> result)
         {
-            await context.PostAsync("I am handling your request to search locations near " + result.GetAwaiter().GetResult());
+            var location = result.GetAwaiter().GetResult().ToString();
+            await context.PostAsync("I am handling your request to search for destinations near " + location + ".");
+
+            // Now that we have the location to search for news about, call the API
+            var destinations = await CallSearchAPI(location, "destination");
+
+            // Create and display the news results
+            //await context.PostAsync(MakeNewsCards(context, (NewsResult)news));
+            await context.PostAsync("I have found " + (DestinationResult)destinations);
             context.Wait(MessageReceived);
         }
 
@@ -73,12 +87,10 @@ namespace TravelBot.Dialogs
             if (location != null)
             {
                 // Now that we have the location to search for news about, call the API
-                var news = await CallNewsAPI(location.Entity);
+                var news = await CallSearchAPI(location.Entity, "news");
 
                 // Create and display the news results
-                await context.PostAsync(MakeNewsCards(context, news));
-
-                //await context.PostAsync("I found you " + news.totalEstimatedMatches + " articles about " + location + ".");
+                await context.PostAsync(MakeNewsCards(context, (NewsResult)news));
                 context.Wait(MessageReceived);
             }
             else // The user needs to enter a location before getting destination suggestions
@@ -94,16 +106,14 @@ namespace TravelBot.Dialogs
             await context.PostAsync("I am handling your request to get news from " + location + ".");
 
             // Now that we have the location to search for news about, call the API
-            var news = await CallNewsAPI(location);
+            var news = await CallSearchAPI(location, "news");
 
             // Create and display the news results
-            await context.PostAsync(MakeNewsCards(context, news));
-
-            //await context.PostAsync("I found you " + news.totalEstimatedMatches + " articles about " + location + ".");
+            await context.PostAsync(MakeNewsCards(context, (NewsResult)news));
             context.Wait(MessageReceived);
         }
 
-        private async Task<NewsResult> CallNewsAPI(string location)
+        private async Task<object> CallSearchAPI(string location, string searchType)
         {
             var client = new HttpClient();
             var queryString = HttpUtility.ParseQueryString(string.Empty);
@@ -112,22 +122,42 @@ namespace TravelBot.Dialogs
             client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", WebConfigurationManager.AppSettings["CogServices:NewsSearch:ID"]);
 
             // Request parameters
-            queryString["q"] = "Travel related news about " + location;
             queryString["count"] = "4";
             queryString["offset"] = "0";
             queryString["mkt"] = "en-US";
             queryString["safeSearch"] = "Moderate";
-            var uri = "https://api.cognitive.microsoft.com/bing/v5.0/news/search?" + queryString;
+            string uri = null;
+            if (searchType == "news")
+            {
+                queryString["q"] = "Travel related news about " + location;
+                uri = "https://api.cognitive.microsoft.com/bing/v5.0/news/search?" + queryString;
+
+            }
+            else if (searchType == "destination")
+            {
+                queryString["q"] = "Travel desitnations in " + location;
+                uri = "https://api.cognitive.microsoft.com/bing/v5.0/search?" + queryString;
+            }
             var response = await client.GetAsync(uri);
 
             HttpContent resultContent = response.Content;
             var result = await resultContent.ReadAsStringAsync();
 
             // Populate a JSON object with the results of the API call
-            NewsResult news = new NewsResult();
-            JsonConvert.PopulateObject(result, news);
+            if (searchType == "news")
+            {
+                NewsResult news = new NewsResult();
+                JsonConvert.PopulateObject(result, news);
+                return news;
+            }
+            else if (searchType == "destination")
+            {
+                DestinationResult destination = new DestinationResult();
+                JsonConvert.PopulateObject(result, destination);
+                return destination;
+            }
 
-            return news;
+            return null;
         }
 
         private IMessageActivity MakeNewsCards(IDialogContext context, NewsResult news)
@@ -145,6 +175,7 @@ namespace TravelBot.Dialogs
                     {
                         new CardImage() { Url = item.image.thumbnail.contentUrl }
                     },
+                    Tap = new CardAction(item.url),
                 };
 
                 resultMessage.Attachments.Add(thumbnailCard.ToAttachment());

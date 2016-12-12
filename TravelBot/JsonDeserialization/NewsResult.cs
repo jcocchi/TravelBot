@@ -33,7 +33,7 @@ namespace TravelBot.JsonDeserialization
         public string name { get; set; }
     }
 
-    public class Value
+    public class NewsValue
     {
         public string name { get; set; }
         public string url { get; set; }
@@ -53,6 +53,6 @@ namespace TravelBot.JsonDeserialization
         public Instrumentation instrumentation { get; set; }
         public string readLink { get; set; }
         public int totalEstimatedMatches { get; set; }
-        public List<Value> value { get; set; }
+        public List<NewsValue> value { get; set; }
     }
 }
