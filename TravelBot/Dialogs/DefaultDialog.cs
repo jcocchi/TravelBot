@@ -11,6 +11,8 @@ using System.Net.Http;
 using System.Web;
 using TravelBot.JsonDeserialization;
 using Newtonsoft.Json;
+using System.Threading;
+using static TravelBot.Dialogs.WeatherDialog;
 
 namespace TravelBot.Dialogs
 {
@@ -34,7 +36,7 @@ namespace TravelBot.Dialogs
         {
 
             await context.PostAsync("Hello! How can I assist you with your travels today?\n" +
-                                        "- Search for a travel destinatation\n" +
+                                        "- Search for a travel destination\n" +
                                         "- Check the weather in a location\n" +
                                         "- Check the current news in a location\n");
             context.Wait(MessageReceived);
@@ -43,21 +45,20 @@ namespace TravelBot.Dialogs
         [LuisIntent("FindDesitnation")]
         public async Task FindDestination(IDialogContext context, LuisResult result)
         {
-            var location = GetLocation(new List<EntityRecommendation>(result.Entities));
-
-            // If the user specified a location
-            if (location != null)
+            // We are only looking at the first intent in the array because that represents this function
+            if (result.Entities.Count == 1)
             {
-                await context.PostAsync("You want to travel to " + location.Entity + "!");
+                // We have all entities we need because the action was triggered
+                // Get the location and call the API
+                var destination = await CallSearchAPI(GetLocation(new List<EntityRecommendation>(result.Entities)), "destination");
 
-                var destinations = await CallSearchAPI(location.Entity, "destination");
-
-                // Create and display the destination results
-                await context.PostAsync(MakeDestinationCards(context, (DestinationResult)destinations));
+                // Create and display the news results
+                await context.PostAsync(MakeDestinationCards(context, (DestinationResult)destination));
                 context.Wait(MessageReceived);
             }
-            else // The user needs to enter a location before getting destination suggestions
+            else
             {
+                // We need to prompt the user for a location
                 var prompt = "What country, state, or city would you like to find travel suggestions for?";
                 PromptDialog.Text(context, HandleDestinationSearch, prompt);
             }
@@ -86,14 +87,14 @@ namespace TravelBot.Dialogs
                 var action = new CardAction();
                 action.Type = "openUrl";
                 action.Value = item.url;
-                ThumbnailCard thumbnailCard = new ThumbnailCard()
+                HeroCard heroCard = new HeroCard()
                 {
                     Title = item.name,
                     Text = item.snippet,
                     Tap = action,
                 };
 
-                resultMessage.Attachments.Add(thumbnailCard.ToAttachment());
+                resultMessage.Attachments.Add(heroCard.ToAttachment());
             }
 
             return resultMessage;
@@ -102,27 +103,27 @@ namespace TravelBot.Dialogs
         [LuisIntent("GetNews")]
         public async Task GetNews(IDialogContext context, LuisResult result)
         {
-            var location = GetLocation(new List<EntityRecommendation>(result.Entities));
-            string prompt;
-
-            // If the user specified a location
-            if (location != null)
+            // We are only looking at the first intent in the array because that represents this function
+            // We know there is only one action for this function to get the news
+            if (result.Intents[0].Actions[0].Triggered.Equals(true))
             {
-                // Now that we have the location to search for news about, call the API
-                var news = await CallSearchAPI(location.Entity, "news");
+                // We have all entities we need because the action was triggered
+                // Get the location and call the API
+                var news = await CallSearchAPI(GetLocation(new List<EntityRecommendation>(result.Entities)), "news");
 
                 // Create and display the news results
                 await context.PostAsync(MakeNewsCards(context, (NewsResult)news));
                 context.Wait(MessageReceived);
             }
-            else // The user needs to enter a location before getting destination suggestions
+            else
             {
-                prompt = "What country, state, or city would you like to find news for?";
-                PromptDialog.Text(context, GetNewsLocation, prompt);
+                // We need to prompt the user for a location
+                var prompt = "What country, state, or city would you like to find news for?";
+                PromptDialog.Text(context, HandleNewsSearch, prompt);
             }
         }
 
-        private async Task GetNewsLocation(IDialogContext context, IAwaitable<string> result)
+        private async Task HandleNewsSearch(IDialogContext context, IAwaitable<string> result)
         {
             var location = await result;
             await context.PostAsync("I am handling your request to get news from " + location + ".");
@@ -145,7 +146,7 @@ namespace TravelBot.Dialogs
                 var action = new CardAction();
                 action.Type = "openUrl";
                 action.Value = item.url;
-                ThumbnailCard thumbnailCard = new ThumbnailCard()
+                HeroCard heroCard = new HeroCard()
                 {
                     Title = item.name,
                     Text = item.description,
@@ -156,7 +157,7 @@ namespace TravelBot.Dialogs
                     Tap = action,
                 };
 
-                resultMessage.Attachments.Add(thumbnailCard.ToAttachment());
+                resultMessage.Attachments.Add(heroCard.ToAttachment());
             }
 
             return resultMessage;
@@ -165,11 +166,39 @@ namespace TravelBot.Dialogs
         [LuisIntent("GetWeather")]
         public async Task GetWeather(IDialogContext context, LuisResult result)
         {
-            await context.PostAsync("Checking the weather...");
+            var entities = new List<EntityRecommendation>(result.Entities);
+
+            // We are only looking at the first intent in the array because that represents this function
+            // We know there is only one action for this function to search the weather
+            if (result.Intents[0].Actions[0].Triggered.Equals(true))
+            {
+                // We have all entities we need because the action was triggered
+                // Get the location and call the API
+                //var weather = await CallWeatherAPI(GetLocation(entities), getDate(entities), "news");
+
+                // Create and display the news results
+                //await context.PostAsync(MakeWeatherCards(context, (WeatherResult)weather));
+                context.Wait(MessageReceived);
+            }
+            else
+            {
+                // We need to prompt the user for a location, a date or both
+                await context.PostAsync("Let me gather some extra info for you");
+                //context.Call<Weather>(new WeatherDialog(entities), HandleWeatherSearch); 
+                context.Call<Weather>(new WeatherDialog(), HandleWeatherSearch); 
+
+            }
+        }
+
+        private async Task HandleWeatherSearch(IDialogContext context, IAwaitable<Weather> result)
+        {
+            var weather = await result; 
+            await context.PostAsync("I am handling your weather search for weather in " + weather.Location + " on " + weather.Date);
+
             context.Wait(MessageReceived);
         }
 
-        private EntityRecommendation GetLocation(List<EntityRecommendation> entities)
+        private string GetLocation(List<EntityRecommendation> entities)
         {
             // Find the location the user specified
             EntityRecommendation location = null;
@@ -186,7 +215,7 @@ namespace TravelBot.Dialogs
                 location = entities.Where((entity) => entity.Type == luisCity).First();
             }
 
-            return location;
+            return location.Entity;
         }
 
         private async Task<object> CallSearchAPI(string location, string searchType)

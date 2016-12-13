@@ -19,7 +19,7 @@ namespace TravelBot
         {
             if (activity.Type == ActivityTypes.Message)
             {
-                await Conversation.SendAsync(activity, MakeRoot);
+                await Conversation.SendAsync(activity, () => new DefaultDialog());
             }
             else
             {
@@ -28,11 +28,6 @@ namespace TravelBot
             var response = Request.CreateResponse(HttpStatusCode.OK);
 
             return response;
-        }
-
-        private IDialog<object> MakeRoot()
-        {
-            return Chain.From(() => new DefaultDialog());
         }
 
         private Activity HandleSystemMessage(Activity message)
