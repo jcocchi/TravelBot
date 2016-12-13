@@ -32,6 +32,7 @@ namespace TravelBot.Dialogs
         [LuisIntent("Greeting")]
         public async Task Greeting(IDialogContext context, LuisResult result)
         {
+
             await context.PostAsync("Hello! How can I assist you with your travels today?\n" +
                                         "- Search for a travel destinatation\n" +
                                         "- Check the weather in a location\n" +
@@ -51,9 +52,8 @@ namespace TravelBot.Dialogs
 
                 var destinations = await CallSearchAPI(location.Entity, "destination");
 
-                // Create and display the news results
-                //await context.PostAsync(MakeNewsCards(context, (NewsResult)news));
-                await context.PostAsync("I have found " + (DestinationResult)destinations);
+                // Create and display the destination results
+                await context.PostAsync(MakeDestinationCards(context, (DestinationResult)destinations));
                 context.Wait(MessageReceived);
             }
             else // The user needs to enter a location before getting destination suggestions
@@ -71,10 +71,32 @@ namespace TravelBot.Dialogs
             // Now that we have the location to search for news about, call the API
             var destinations = await CallSearchAPI(location, "destination");
 
-            // Create and display the news results
-            //await context.PostAsync(MakeNewsCards(context, (NewsResult)news));
-            await context.PostAsync("I have found " + (DestinationResult)destinations);
+            // Create and display the destination results
+            await context.PostAsync(MakeDestinationCards(context, (DestinationResult)destinations));
             context.Wait(MessageReceived);
+        }
+
+        private IMessageActivity MakeDestinationCards(IDialogContext context, DestinationResult dest)
+        {
+            var resultMessage = context.MakeMessage();
+            resultMessage.AttachmentLayout = AttachmentLayoutTypes.Carousel;
+            resultMessage.Attachments = new List<Attachment>();
+            foreach (var item in dest.webPages.value)
+            {
+                var action = new CardAction();
+                action.Type = "openUrl";
+                action.Value = item.url;
+                ThumbnailCard thumbnailCard = new ThumbnailCard()
+                {
+                    Title = item.name,
+                    Text = item.snippet,
+                    Tap = action,
+                };
+
+                resultMessage.Attachments.Add(thumbnailCard.ToAttachment());
+            }
+
+            return resultMessage;
         }
 
         [LuisIntent("GetNews")]
@@ -111,6 +133,60 @@ namespace TravelBot.Dialogs
             // Create and display the news results
             await context.PostAsync(MakeNewsCards(context, (NewsResult)news));
             context.Wait(MessageReceived);
+        }
+
+        private IMessageActivity MakeNewsCards(IDialogContext context, NewsResult news)
+        {
+            var resultMessage = context.MakeMessage();
+            resultMessage.AttachmentLayout = AttachmentLayoutTypes.Carousel;
+            resultMessage.Attachments = new List<Attachment>();
+            foreach (var item in news.value)
+            {
+                var action = new CardAction();
+                action.Type = "openUrl";
+                action.Value = item.url;
+                ThumbnailCard thumbnailCard = new ThumbnailCard()
+                {
+                    Title = item.name,
+                    Text = item.description,
+                    Images = new List<CardImage>()
+                    {
+                        new CardImage() { Url = item.image.thumbnail.contentUrl }
+                    },
+                    Tap = action,
+                };
+
+                resultMessage.Attachments.Add(thumbnailCard.ToAttachment());
+            }
+
+            return resultMessage;
+        }
+
+        [LuisIntent("GetWeather")]
+        public async Task GetWeather(IDialogContext context, LuisResult result)
+        {
+            await context.PostAsync("Checking the weather...");
+            context.Wait(MessageReceived);
+        }
+
+        private EntityRecommendation GetLocation(List<EntityRecommendation> entities)
+        {
+            // Find the location the user specified
+            EntityRecommendation location = null;
+            if (entities.Any((entity) => entity.Type == luisCountry))
+            {
+                location = entities.Where((entity) => entity.Type == luisCountry).First();
+            }
+            else if (entities.Any((entity) => entity.Type == luisState))
+            {
+                location = entities.Where((entity) => entity.Type == luisState).First();
+            }
+            else if (entities.Any((entity) => entity.Type == luisCity))
+            {
+                location = entities.Where((entity) => entity.Type == luisCity).First();
+            }
+
+            return location;
         }
 
         private async Task<object> CallSearchAPI(string location, string searchType)
@@ -158,57 +234,6 @@ namespace TravelBot.Dialogs
             }
 
             return null;
-        }
-
-        private IMessageActivity MakeNewsCards(IDialogContext context, NewsResult news)
-        {
-            var resultMessage = context.MakeMessage();
-            resultMessage.AttachmentLayout = AttachmentLayoutTypes.Carousel;
-            resultMessage.Attachments = new List<Attachment>();
-            foreach (var item in news.value)
-            {
-                ThumbnailCard thumbnailCard = new ThumbnailCard()
-                {
-                    Title = item.name,
-                    Text = item.description,
-                    Images = new List<CardImage>()
-                    {
-                        new CardImage() { Url = item.image.thumbnail.contentUrl }
-                    },
-                    Tap = new CardAction(item.url),
-                };
-
-                resultMessage.Attachments.Add(thumbnailCard.ToAttachment());
-            }
-
-            return resultMessage;
-        }
-
-        [LuisIntent("GetWeather")]
-        public async Task GetWeather(IDialogContext context, LuisResult result)
-        {
-            await context.PostAsync("Checking the weather...");
-            context.Wait(MessageReceived);
-        }
-
-        private EntityRecommendation GetLocation(List<EntityRecommendation> entities)
-        {
-            // Find the location the user specified
-            EntityRecommendation location = null;
-            if (entities.Any((entity) => entity.Type == luisCountry))
-            {
-                location = entities.Where((entity) => entity.Type == luisCountry).First();
-            }
-            else if (entities.Any((entity) => entity.Type == luisState))
-            {
-                location = entities.Where((entity) => entity.Type == luisState).First();
-            }
-            else if (entities.Any((entity) => entity.Type == luisCity))
-            {
-                location = entities.Where((entity) => entity.Type == luisCity).First();
-            }
-
-            return location;
         }
     }
 }

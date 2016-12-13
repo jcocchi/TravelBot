@@ -12,14 +12,6 @@ namespace TravelBot.JsonDeserialization
         public string urlPingSuffix { get; set; }
     }
 
-    public class WebPages
-    {
-        public string webSearchUrl { get; set; }
-        public string webSearchUrlPingSuffix { get; set; }
-        public int totalEstimatedMatches { get; set; }
-        public List<DestinationValue> value { get; set; }
-    }
-
     public class Value2
     {
         public string name { get; set; }

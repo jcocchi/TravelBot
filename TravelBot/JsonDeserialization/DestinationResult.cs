@@ -20,6 +20,14 @@ namespace TravelBot.JsonDeserialization
         public string dateLastCrawled { get; set; }
     }
 
+    public class WebPages
+    {
+        public string webSearchUrl { get; set; }
+        public string webSearchUrlPingSuffix { get; set; }
+        public int totalEstimatedMatches { get; set; }
+        public List<DestinationValue> value { get; set; }
+    }
+
     [JsonObject]
     public class DestinationResult
     {
