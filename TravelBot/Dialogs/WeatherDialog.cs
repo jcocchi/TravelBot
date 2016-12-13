@@ -18,30 +18,29 @@ namespace TravelBot.Dialogs
 
         Weather weather;
 
-        //public WeatherDialog(List<EntityRecommendation> entities)
-        //{
-        //    weather = new Weather();
-        //    foreach (var entity in entities)
-        //    {
-        //        if (entity.Type == luisCity)
-        //        {
-        //            weather.Location = entity.Entity;
-        //        }
-        //        else if (entity.Type == luisDate)
-        //        {
-        //            weather.Date = entity.Entity;
-        //        }
-        //    }
-        //}
+        public WeatherDialog(List<EntityRecommendation> entities)
+        {
+            weather = new Weather();
+            foreach (var entity in entities)
+            {
+                if (entity.Type == luisCity)
+                {
+                    weather.Location = entity.Entity;
+                }
+                else if (entity.Type == luisDate)
+                {
+                    weather.Date = entity.Entity;
+                }
+            }
+        }
 
         public async Task StartAsync(IDialogContext context)
         {
-            weather = new Weather();
+            await context.PostAsync("we will do some stuff now...");
             if (weather.Location == null && weather.Date == null)
             {
-                //await context.PostAsync("Please enter a US city to get the weather for.");
-                //context.Wait(GetLocAndDate);
-                PromptDialog.Text(context, GetLocAndDate, "Enter a city");
+                await context.PostAsync("Please enter a US city to get the weather for.");
+                context.Wait(GetLocAndDate);
             }
             else if (weather.Location == null && weather.Date != null)
             {
@@ -59,10 +58,10 @@ namespace TravelBot.Dialogs
             }
         }
 
-        private async Task GetLocAndDate(IDialogContext context, IAwaitable<string> result)
+        private async Task GetLocAndDate(IDialogContext context, IAwaitable<IMessageActivity> result)
         {
             var temp = await result;
-            //weather.Location = temp.Text;
+            weather.Location = temp.Text;
             await context.PostAsync("Please enter the date you want to get the weather for.");
             context.Wait(DateBackToRoot);
         }
@@ -82,6 +81,7 @@ namespace TravelBot.Dialogs
         }
     }
 
+    [Serializable]
     public class Weather
     {
         public string Location { get; set; }

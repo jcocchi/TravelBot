@@ -184,9 +184,7 @@ namespace TravelBot.Dialogs
             {
                 // We need to prompt the user for a location, a date or both
                 await context.PostAsync("Let me gather some extra info for you");
-                //context.Call<Weather>(new WeatherDialog(entities), HandleWeatherSearch); 
-                context.Call<Weather>(new WeatherDialog(), HandleWeatherSearch); 
-
+                context.Call<Weather>(new WeatherDialog(entities), HandleWeatherSearch); 
             }
         }
 
