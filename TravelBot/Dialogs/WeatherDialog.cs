@@ -7,14 +7,19 @@ using System.Threading.Tasks;
 using Microsoft.Bot.Connector;
 using Microsoft.Bot.Builder.FormFlow;
 using Microsoft.Bot.Builder.Luis.Models;
+using System.Text.RegularExpressions;
+using Microsoft.Bot.Builder.Dialogs.Internals;
 
 namespace TravelBot.Dialogs
 {
     [Serializable]
     public class WeatherDialog : IDialog<Weather>
     {
-        private static string luisCity = "builtin.geography.city";
-        private static string luisDate = "builtin.datetime.date";
+        private static readonly string luisCity = "builtin.geography.city";
+        private static readonly string luisDate = "builtin.datetime.date";
+        private static readonly string defaultDate = "1/1/0001 12:00:00 AM";
+        private static readonly string datePrompt = "Please enter the date you want to get the weather for in MM/DD/YY format.";
+        private static readonly string locationPrompt = "Please enter a US city to get the weather for.";
 
         Weather weather;
 
@@ -29,27 +34,28 @@ namespace TravelBot.Dialogs
                 }
                 else if (entity.Type == luisDate)
                 {
-                    weather.Date = entity.Entity;
+                    var temp = new DateTime();
+                    DateTime.TryParse(entity.Entity, out temp);
+                    weather.Date = temp;
                 }
             }
         }
 
         public async Task StartAsync(IDialogContext context)
         {
-            await context.PostAsync("we will do some stuff now...");
-            if (weather.Location == null && weather.Date == null)
+            if (weather.Location == null && weather.Date.ToString() == defaultDate)
             {
-                await context.PostAsync("Please enter a US city to get the weather for.");
+                await context.PostAsync(locationPrompt);
                 context.Wait(GetLocAndDate);
             }
-            else if (weather.Location == null && weather.Date != null)
+            else if (weather.Location == null && weather.Date.ToString() == defaultDate)
             {
-                await context.PostAsync("Please enter a US city to get the weather for.");
+                await context.PostAsync(locationPrompt);
                 context.Wait(LocBackToRoot);
             }
-            else if (weather.Date == null && weather.Location != null)
+            else if (weather.Date.ToString() == defaultDate && weather.Location != null)
             {
-                await context.PostAsync("Please enter the date you want to get the weather for.");
+                await context.PostAsync(datePrompt);
                 context.Wait(DateBackToRoot);
             }
             else
@@ -62,7 +68,7 @@ namespace TravelBot.Dialogs
         {
             var temp = await result;
             weather.Location = temp.Text;
-            await context.PostAsync("Please enter the date you want to get the weather for.");
+            await context.PostAsync(datePrompt);
             context.Wait(DateBackToRoot);
         }
 
@@ -76,8 +82,18 @@ namespace TravelBot.Dialogs
         private async Task DateBackToRoot(IDialogContext context, IAwaitable<IMessageActivity> result)
         {
             var temp = await result;
-            weather.Date = temp.Text;
-            context.Done(weather);
+            var dateTime = new DateTime();
+
+            if (DateTime.TryParse(temp.Text, out dateTime))
+            {
+                weather.Date = dateTime.Date;
+                context.Done(weather);
+            }
+            else
+            {
+                await context.PostAsync("Oops! That was an invalid date. Please enter the date you want to get the weather for in MM/DD/YY format.");
+                context.Wait(DateBackToRoot);
+            }
         }
     }
 
@@ -85,6 +101,6 @@ namespace TravelBot.Dialogs
     public class Weather
     {
         public string Location { get; set; }
-        public string Date { get; set; }
+        public DateTime Date { get; set; }
     }
 }

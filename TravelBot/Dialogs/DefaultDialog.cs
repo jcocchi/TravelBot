@@ -183,15 +183,14 @@ namespace TravelBot.Dialogs
             else
             {
                 // We need to prompt the user for a location, a date or both
-                await context.PostAsync("Let me gather some extra info for you");
                 context.Call<Weather>(new WeatherDialog(entities), HandleWeatherSearch); 
             }
         }
 
         private async Task HandleWeatherSearch(IDialogContext context, IAwaitable<Weather> result)
         {
-            var weather = await result; 
-            await context.PostAsync("I am handling your weather search for weather in " + weather.Location + " on " + weather.Date);
+            var weather = await result;
+            await context.PostAsync("I am handling your weather search for weather in " + weather.Location + " on " + weather.Date.ToShortDateString());
 
             context.Wait(MessageReceived);
         }
