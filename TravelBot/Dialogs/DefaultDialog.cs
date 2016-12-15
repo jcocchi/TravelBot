@@ -44,15 +44,24 @@ namespace TravelBot.Dialogs
             context.Wait(MessageReceived);
         }
 
+        [LuisIntent("ThankYou")]
+        public async Task ThankYou(IDialogContext context, LuisResult result)
+        {
+
+            await context.PostAsync("You're welcome! To see what else I can help you with type \"help\".");
+            context.Wait(MessageReceived);
+        }
+
         [LuisIntent("FindDesitnation")]
         public async Task FindDestination(IDialogContext context, LuisResult result)
         {
-            // We are only looking at the first intent in the array because that represents this function
-            if (result.Entities.Count == 1)
+            var location = GetLocation(new List<EntityRecommendation>(result.Entities));
+            if (location != null)
             {
                 // We have all entities we need because the action was triggered
                 // Get the location and call the API
-                var destination = await CallSearchAPI(GetLocation(new List<EntityRecommendation>(result.Entities)), "destination");
+                await context.PostAsync(String.Format("Here are some fun touristy things to do in {0}!", location));
+                var destination = await CallSearchAPI(location, "destination");
 
                 // Create and display the news results
                 await context.PostAsync(MakeDestinationCards(context, (DestinationResult)destination));
@@ -105,13 +114,12 @@ namespace TravelBot.Dialogs
         [LuisIntent("GetNews")]
         public async Task GetNews(IDialogContext context, LuisResult result)
         {
-            // We are only looking at the first intent in the array because that represents this function
-            // We know there is only one action for this function to get the news
-            if (result.Intents[0].Actions[0].Triggered.Equals(true))
+            var location = GetLocation(new List<EntityRecommendation>(result.Entities));
+            if (location != null)
             {
                 // We have all entities we need because the action was triggered
                 // Get the location and call the API
-                var news = await CallSearchAPI(GetLocation(new List<EntityRecommendation>(result.Entities)), "news");
+                var news = await CallSearchAPI(location, "news");
 
                 // Create and display the news results
                 await context.PostAsync(MakeNewsCards(context, (NewsResult)news));
@@ -291,13 +299,21 @@ namespace TravelBot.Dialogs
             {
                 dateEntity = entities.Where((entity) => entity.Type == luisDate).First();
                 DateTime.TryParse(dateEntity.Entity, out date);
+                // The user said something like "tomorrow" or "in two months"
                 if (date.ToString() == defaultDate)
                 {
                     DateTime.TryParse(dateEntity.Resolution.Values.FirstOrDefault(), out date);
                 }
-                // If the user doesn't specify a year, we need to add two years
-                // The first year added will bring us to the current year, 
-                // and the second year will bring us to the future travel date the user meant
+                // If the date is still the default date, the user said a month name like "May"
+                if (date.ToString() == defaultDate) 
+                {
+                    // Right now the date looks like "XXXX-04", we only want the month number so trim the rest
+                    var trimMonth = dateEntity.Resolution.Values.FirstOrDefault().Remove(0, 5);
+                    // Make the date the first of the month that the user entered
+                    date = new DateTime(DateTime.UtcNow.Year, Int32.Parse(trimMonth), 1);
+                }
+                // If the user enters a date in the future, but doesn't specify the year it will be assumed to be this year
+                // Because travel happens in the future not the past, add a year to account for this
                 if(date < DateTime.UtcNow)
                 {
                     date = date.AddYears(1);
@@ -371,9 +387,33 @@ namespace TravelBot.Dialogs
             }
             else
             {
+                // Determine month1 and day1 format
+                var month1 = date.Month.ToString();
+                var day1 = date.Day.ToString();
+                if(date.Month < 10)
+                {
+                    month1 = "0" + month1;
+                }
+                if (date.Day < 10)
+                {
+                    day1 = "0" + day1;
+                }
+                // Determine month2 and day2 format
+                var date2 = date.AddDays(29);
+                var month2 = date2.Month.ToString();
+                var day2 = date2.Day.ToString();
+                if (date2.Month < 10)
+                {
+                    month2 = "0" + month2;
+                }
+                if (date2.Day < 10)
+                {
+                    day2 = "0" + day2;
+                }
+
                 // Determine date range
-                var range = String.Format("0{0}{1}0{2}{3}", 
-                                date.Month.ToString(), date.Day.ToString(), date.AddMonths(1).Month.ToString(), date.Day.ToString());
+                var range = String.Format("{0}{1}{2}{3}", 
+                                month1, day1, month2, day2);
                 uri += String.Format("planner_{0}/q/CA/{1}.json", range, formatLoc);
                 type = "average";
             }
