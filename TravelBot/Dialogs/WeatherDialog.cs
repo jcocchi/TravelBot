@@ -36,6 +36,10 @@ namespace TravelBot.Dialogs
                 {
                     var temp = new DateTime();
                     DateTime.TryParse(entity.Entity, out temp);
+                    if (temp.ToString() == defaultDate)
+                    {
+                        DateTime.TryParse(entity.Resolution.Values.FirstOrDefault(), out temp);
+                    }
                     weather.Date = temp;
                 }
             }
@@ -48,7 +52,7 @@ namespace TravelBot.Dialogs
                 await context.PostAsync(locationPrompt);
                 context.Wait(GetLocAndDate);
             }
-            else if (weather.Location == null && weather.Date.ToString() == defaultDate)
+            else if (weather.Location == null && weather.Date.ToString() != defaultDate)
             {
                 await context.PostAsync(locationPrompt);
                 context.Wait(LocBackToRoot);

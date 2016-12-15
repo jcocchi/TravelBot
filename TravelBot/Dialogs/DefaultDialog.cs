@@ -39,7 +39,7 @@ namespace TravelBot.Dialogs
 
             await context.PostAsync("Hello! How can I assist you with your travels today?\n" +
                                         "- Search for a travel destination\n" +
-                                        "- Check the weather in a location\n" +
+                                        "- Check the weather in a location for a specific date\n" +
                                         "- Check the current news in a location\n");
             context.Wait(MessageReceived);
         }
@@ -177,15 +177,21 @@ namespace TravelBot.Dialogs
             if (location != null && date.ToString() != defaultDate)
             {
                 await context.PostAsync("You have entered all weather info...getting results");
-                var weather = await CallWeatherAPI(location, date);
-
-                if (weather.GetType() == Type.GetType("TenDayForecastResult"))
+                var givenVals = new Weather()
                 {
-                    await context.PostAsync(MakeWeatherCards(context, (TenDayForecastResult)weather));
+                    Date = date,
+                    Location = location
+                };
+
+                // Call API and determine which card to build
+                var weather = await CallWeatherAPI(location, date);
+                if (weather.GetType().Name == "TenDayForecastResult")
+                {
+                    await context.PostAsync(MakeWeatherCards(context, (TenDayForecastResult)weather, givenVals));
                 }
                 else
                 {
-                    await context.PostAsync(MakeWeatherCards(context, (AverageForecastResult)weather));
+                    await context.PostAsync(MakeWeatherCards(context, (AverageForecastResult)weather, givenVals));
                 }
 
                 // Create and display the news results
@@ -198,24 +204,56 @@ namespace TravelBot.Dialogs
             }
         }
 
-        private IMessageActivity MakeWeatherCards(IDialogContext context, TenDayForecastResult weather)
+        private IMessageActivity MakeWeatherCards(IDialogContext context, TenDayForecastResult weather, Weather givenVals)
         {
-            throw new NotImplementedException();
+            var resultMessage = context.MakeMessage();
+            resultMessage.AttachmentLayout = AttachmentLayoutTypes.Carousel;
+            resultMessage.Attachments = new List<Attachment>();
+
+            // Find the correct date returned from the API and make the card
+            var result = weather.forecast.simpleforecast.forecastday.Where(f => f.date.day == givenVals.Date.Day).FirstOrDefault();
+            HeroCard heroCard = new HeroCard()
+            {
+                Title = "WEATHER IN " + givenVals.Location.ToUpper(),
+                Text = String.Format("The high for {0}/{1} is {2} and the low is {3}. Overall conditions are {4}.", 
+                                        result.date.month, result.date.day, result.high.fahrenheit, result.low.fahrenheit, result.conditions.ToLower()),
+            };
+            resultMessage.Attachments.Add(heroCard.ToAttachment());
+
+            return resultMessage;
         }
 
-        private IMessageActivity MakeWeatherCards(IDialogContext context, AverageForecastResult weather)
+        private IMessageActivity MakeWeatherCards(IDialogContext context, AverageForecastResult weather, Weather givenVals)
         {
-            throw new NotImplementedException();
+            var resultMessage = context.MakeMessage();
+            resultMessage.AttachmentLayout = AttachmentLayoutTypes.Carousel;
+            resultMessage.Attachments = new List<Attachment>();
+            HeroCard heroCard = new HeroCard()
+            {
+                Title = "WEATHER IN " + givenVals.Location.ToUpper(),
+                Text = String .Format("The average high for {0} is {1} and the average low is {2}.", 
+                           weather.trip.period_of_record.date_start.date.monthname, weather.trip.temp_high.avg.F, weather.trip.temp_low.avg.F),
+            };
+            resultMessage.Attachments.Add(heroCard.ToAttachment());
+
+            return resultMessage;
         }
 
         private async Task HandleWeatherSearch(IDialogContext context, IAwaitable<Weather> result)
         {
             var weather = await result;
-            await context.PostAsync("I am handling your weather search for weather in " + weather.Location + " on " + weather.Date.ToShortDateString());
+            await context.PostAsync("I am handling your weather search in " + weather.Location + " on " + weather.Date.ToShortDateString());
 
             var res = await CallWeatherAPI(weather.Location, weather.Date);
 
-            // Make and post cards to convo
+            if (res.GetType().Name == "TenDayForecastResult")
+            {
+                await context.PostAsync(MakeWeatherCards(context, (TenDayForecastResult)res, weather));
+            }
+            else
+            {
+                await context.PostAsync(MakeWeatherCards(context, (AverageForecastResult)res, weather));
+            }
 
             context.Wait(MessageReceived);
         }
@@ -253,6 +291,17 @@ namespace TravelBot.Dialogs
             {
                 dateEntity = entities.Where((entity) => entity.Type == luisDate).First();
                 DateTime.TryParse(dateEntity.Entity, out date);
+                if (date.ToString() == defaultDate)
+                {
+                    DateTime.TryParse(dateEntity.Resolution.Values.FirstOrDefault(), out date);
+                }
+                // If the user doesn't specify a year, we need to add two years
+                // The first year added will bring us to the current year, 
+                // and the second year will bring us to the future travel date the user meant
+                if(date < DateTime.UtcNow)
+                {
+                    date = date.AddYears(1);
+                }
             }
 
             return date;
@@ -317,14 +366,15 @@ namespace TravelBot.Dialogs
             var futureDate = DateTime.UtcNow.AddDays(10);
             if (date <= futureDate)
             {
-                uri += "forecast10day/q/CA/" + formatLoc + ".json";
+                uri += String.Format("forecast10day/q/CA/{0}.json", formatLoc);
                 type = "10day";
             }
             else
             {
                 // Determine date range
-                var range = "0" + date.Month.ToString() + date.Day.ToString() + "0" + date.AddMonths(1).Month.ToString() + date.Day.ToString();
-                uri += "planner_ " + range + "/q/CA/" + formatLoc + ".json";
+                var range = String.Format("0{0}{1}0{2}{3}", 
+                                date.Month.ToString(), date.Day.ToString(), date.AddMonths(1).Month.ToString(), date.Day.ToString());
+                uri += String.Format("planner_{0}/q/CA/{1}.json", range, formatLoc);
                 type = "average";
             }
 
