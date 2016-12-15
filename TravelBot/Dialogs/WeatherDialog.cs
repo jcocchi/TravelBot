@@ -71,32 +71,59 @@ namespace TravelBot.Dialogs
         private async Task GetLocAndDate(IDialogContext context, IAwaitable<IMessageActivity> result)
         {
             var temp = await result;
-            weather.Location = temp.Text;
-            await context.PostAsync(datePrompt);
-            context.Wait(DateBackToRoot);
+
+            // Verify the user isn't trying to return to the main dialog
+            if (temp.Text.Contains("help"))
+            {
+                context.Done("help");
+            }
+            else
+            {
+                weather.Location = temp.Text;
+                await context.PostAsync(datePrompt);
+                context.Wait(DateBackToRoot);
+            }
         }
 
         private async Task LocBackToRoot(IDialogContext context, IAwaitable<IMessageActivity> result)
         {
             var temp = await result;
-            weather.Location = temp.Text;
-            context.Done(weather);
+
+            // Verify the user isn't trying to return to the main dialog
+            if (temp.Text.Contains("help"))
+            {
+                context.Done("help");
+            }
+            else
+            {
+                weather.Location = temp.Text;
+                context.Done(weather);
+            }
         }
 
         private async Task DateBackToRoot(IDialogContext context, IAwaitable<IMessageActivity> result)
         {
             var temp = await result;
-            var dateTime = new DateTime();
 
-            if (DateTime.TryParse(temp.Text, out dateTime))
+            // Verify the user isn't trying to return to the main dialog
+            if (temp.Text.Contains("help"))
             {
-                weather.Date = dateTime.Date;
-                context.Done(weather);
+                context.Done("help");
             }
             else
             {
-                await context.PostAsync("Oops! That was an invalid date. Please enter the date you want to get the weather for in MM/DD format.");
-                context.Wait(DateBackToRoot);
+                var dateTime = new DateTime();
+
+                if (DateTime.TryParse(temp.Text, out dateTime))
+                {
+                    weather.Date = dateTime.Date;
+                    context.Done(weather);
+                }
+                else
+                {
+                    await context.PostAsync("Oops! That was an invalid date. Please enter the date you want to get the weather for in MM/DD format.");
+                    context.Wait(DateBackToRoot);
+                }
             }
         }
     }

@@ -60,7 +60,7 @@ namespace TravelBot.Dialogs
             {
                 // We have all entities we need because the action was triggered
                 // Get the location and call the API
-                await context.PostAsync(String.Format("Here are some fun touristy things to do in {0}!", location));
+                await context.PostAsync(String.Format("Here are some fun touristy things to do in {0}! Click each card to learn more.", location));
                 var destination = await CallSearchAPI(location, "destination");
 
                 // Create and display the news results
@@ -78,7 +78,7 @@ namespace TravelBot.Dialogs
         private async Task HandleDestinationSearch(IDialogContext context, IAwaitable<string> result)
         {
             var location = await result;
-            await context.PostAsync("I am handling your request to search for destinations near " + location + ".");
+            await context.PostAsync("I am handling your request to search for destinations near " + location + "...");
 
             // Now that we have the location to search for news about, call the API
             var destinations = await CallSearchAPI(location, "destination");
@@ -117,8 +117,8 @@ namespace TravelBot.Dialogs
             var location = GetLocation(new List<EntityRecommendation>(result.Entities));
             if (location != null)
             {
-                // We have all entities we need because the action was triggered
-                // Get the location and call the API
+                // We have all entities we need so tell the user and call the API
+                await context.PostAsync("I am handling your request to get news from " + location + ".");
                 var news = await CallSearchAPI(location, "news");
 
                 // Create and display the news results
@@ -184,7 +184,7 @@ namespace TravelBot.Dialogs
             var location = GetLocation(new List<EntityRecommendation>(result.Entities));
             if (location != null && date.ToString() != defaultDate)
             {
-                await context.PostAsync("You have entered all weather info...getting results");
+                await context.PostAsync("I am handling your weather search in " + location + " on " + date.ToShortDateString());
                 var givenVals = new Weather()
                 {
                     Date = date,
