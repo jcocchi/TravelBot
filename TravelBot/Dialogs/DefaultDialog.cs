@@ -20,14 +20,16 @@ namespace TravelBot.Dialogs
     [LuisModel("138ad2b9-9738-4871-ba7a-93c1121aff70", "efe598955c1e4f4f93a89e018d468e0a")]
     public class DefaultDialog : LuisDialog<object>
     {
-        private static string luisCountry = "builtin.geography.country";
-        private static string luisState = "builtin.geography.us_state";
-        private static string luisCity = "builtin.geography.city";
+        private static readonly string luisCountry = "builtin.geography.country";
+        private static readonly string luisState = "builtin.geography.us_state";
+        private static readonly string luisCity = "builtin.geography.city";
+        private static readonly string luisDate = "builtin.datetime.date";
+        private static readonly string defaultDate = "1/1/0001 12:00:00 AM";
 
         [LuisIntent("")]
         public async Task None(IDialogContext context, LuisResult result)
         {
-            await context.PostAsync("Sorry, I don't understand what you said.");
+            await context.PostAsync("Sorry, I don't understand what you said. Type \"help\" for a list of what I can help you with!");
             context.Wait(MessageReceived);
         }
 
@@ -170,14 +172,23 @@ namespace TravelBot.Dialogs
 
             // We are only looking at the first intent in the array because that represents this function
             // We know there is only one action for this function to search the weather
-            if (result.Intents[0].Actions[0].Triggered.Equals(true))
+            var date = GetDate(entities);
+            var location = GetLocation(new List<EntityRecommendation>(result.Entities));
+            if (location != null && date.ToString() != defaultDate)
             {
-                // We have all entities we need because the action was triggered
-                // Get the location and call the API
-                //var weather = await CallWeatherAPI(GetLocation(entities), getDate(entities), "news");
+                await context.PostAsync("You have entered all weather info...getting results");
+                var weather = await CallWeatherAPI(location, date);
+
+                if (weather.GetType() == Type.GetType("TenDayForecastResult"))
+                {
+                    await context.PostAsync(MakeWeatherCards(context, (TenDayForecastResult)weather));
+                }
+                else
+                {
+                    await context.PostAsync(MakeWeatherCards(context, (AverageForecastResult)weather));
+                }
 
                 // Create and display the news results
-                //await context.PostAsync(MakeWeatherCards(context, (WeatherResult)weather));
                 context.Wait(MessageReceived);
             }
             else
@@ -187,10 +198,24 @@ namespace TravelBot.Dialogs
             }
         }
 
+        private IMessageActivity MakeWeatherCards(IDialogContext context, TenDayForecastResult weather)
+        {
+            throw new NotImplementedException();
+        }
+
+        private IMessageActivity MakeWeatherCards(IDialogContext context, AverageForecastResult weather)
+        {
+            throw new NotImplementedException();
+        }
+
         private async Task HandleWeatherSearch(IDialogContext context, IAwaitable<Weather> result)
         {
             var weather = await result;
             await context.PostAsync("I am handling your weather search for weather in " + weather.Location + " on " + weather.Date.ToShortDateString());
+
+            var res = await CallWeatherAPI(weather.Location, weather.Date);
+
+            // Make and post cards to convo
 
             context.Wait(MessageReceived);
         }
@@ -211,8 +236,26 @@ namespace TravelBot.Dialogs
             {
                 location = entities.Where((entity) => entity.Type == luisCity).First();
             }
+            else
+            {
+                return null;
+            }
 
             return location.Entity;
+        }
+
+        private DateTime GetDate(List<EntityRecommendation> entities)
+        {
+            // Find the date the user specified
+            EntityRecommendation dateEntity = null;
+            DateTime date = new DateTime();
+            if (entities.Any((entity) => entity.Type == luisDate))
+            {
+                dateEntity = entities.Where((entity) => entity.Type == luisDate).First();
+                DateTime.TryParse(dateEntity.Entity, out date);
+            }
+
+            return date;
         }
 
         private async Task<object> CallSearchAPI(string location, string searchType)
@@ -260,6 +303,49 @@ namespace TravelBot.Dialogs
             }
 
             return null;
+        }
+
+        private async Task<object> CallWeatherAPI(string location, DateTime date)
+        {
+            // Format the location
+            var formatLoc = location.ToLower();
+            formatLoc = formatLoc.Replace(" ", "_");
+
+            // Decide which API to call
+            string type;
+            var uri = "http://api.wunderground.com/api/99739e85768e55e2/";
+            var futureDate = DateTime.UtcNow.AddDays(10);
+            if (date <= futureDate)
+            {
+                uri += "forecast10day/q/CA/" + formatLoc + ".json";
+                type = "10day";
+            }
+            else
+            {
+                // Determine date range
+                var range = "0" + date.Month.ToString() + date.Day.ToString() + "0" + date.AddMonths(1).Month.ToString() + date.Day.ToString();
+                uri += "planner_ " + range + "/q/CA/" + formatLoc + ".json";
+                type = "average";
+            }
+
+            var client = new HttpClient();
+            var response = await client.GetAsync(uri);
+
+            HttpContent resultContent = response.Content;
+            var result = await resultContent.ReadAsStringAsync();
+
+            if (type == "10day")
+            {
+                TenDayForecastResult forecast = new TenDayForecastResult();
+                JsonConvert.PopulateObject(result, forecast);
+                return forecast;
+            }
+            else
+            {
+                AverageForecastResult forecast = new AverageForecastResult();
+                JsonConvert.PopulateObject(result, forecast);
+                return forecast;
+            }
         }
     }
 }

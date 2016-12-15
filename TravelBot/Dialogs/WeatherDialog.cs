@@ -18,7 +18,7 @@ namespace TravelBot.Dialogs
         private static readonly string luisCity = "builtin.geography.city";
         private static readonly string luisDate = "builtin.datetime.date";
         private static readonly string defaultDate = "1/1/0001 12:00:00 AM";
-        private static readonly string datePrompt = "Please enter the date you want to get the weather for in MM/DD/YY format.";
+        private static readonly string datePrompt = "Please enter the date you want to get the weather for in MM/DD format.";
         private static readonly string locationPrompt = "Please enter a US city to get the weather for.";
 
         Weather weather;
@@ -91,7 +91,7 @@ namespace TravelBot.Dialogs
             }
             else
             {
-                await context.PostAsync("Oops! That was an invalid date. Please enter the date you want to get the weather for in MM/DD/YY format.");
+                await context.PostAsync("Oops! That was an invalid date. Please enter the date you want to get the weather for in MM/DD format.");
                 context.Wait(DateBackToRoot);
             }
         }
