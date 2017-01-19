@@ -25,6 +25,8 @@ namespace TravelBot.Dialogs
         private static readonly string luisCity = "builtin.geography.city";
         private static readonly string luisDate = "builtin.datetime.date";
         private static readonly string defaultDate = "1/1/0001 12:00:00 AM";
+        private MakeCards card = new MakeCards();
+        private MakeAPICalls api = new MakeAPICalls();
 
         [LuisIntent("")]
         public async Task None(IDialogContext context, LuisResult result)
@@ -61,10 +63,10 @@ namespace TravelBot.Dialogs
                 // We have all entities we need because the action was triggered
                 // Get the location and call the API
                 await context.PostAsync(String.Format("Here are some fun touristy things to do in {0}! Click each card to learn more.", location));
-                var destination = await CallSearchAPI(location, "destination");
+                var destination = await api.CallSearchAPI(location, "destination");
 
-                // Create and display the news results
-                await context.PostAsync(MakeDestinationCards(context, (DestinationResult)destination));
+                // Create and display the news results 
+                await context.PostAsync(card.MakeDestinationCards(context, (DestinationResult)destination));
                 context.Wait(MessageReceived);
             }
             else
@@ -81,34 +83,11 @@ namespace TravelBot.Dialogs
             await context.PostAsync("I am handling your request to search for destinations near " + location + "...");
 
             // Now that we have the location to search for news about, call the API
-            var destinations = await CallSearchAPI(location, "destination");
+            var destinations = await api.CallSearchAPI(location, "destination");
 
             // Create and display the destination results
-            await context.PostAsync(MakeDestinationCards(context, (DestinationResult)destinations));
+            await context.PostAsync(card.MakeDestinationCards(context, (DestinationResult)destinations));
             context.Wait(MessageReceived);
-        }
-
-        private IMessageActivity MakeDestinationCards(IDialogContext context, DestinationResult dest)
-        {
-            var resultMessage = context.MakeMessage();
-            resultMessage.AttachmentLayout = AttachmentLayoutTypes.Carousel;
-            resultMessage.Attachments = new List<Attachment>();
-            foreach (var item in dest.webPages.value)
-            {
-                var action = new CardAction();
-                action.Type = "openUrl";
-                action.Value = item.url;
-                HeroCard heroCard = new HeroCard()
-                {
-                    Title = item.name,
-                    Text = item.snippet,
-                    Tap = action,
-                };
-
-                resultMessage.Attachments.Add(heroCard.ToAttachment());
-            }
-
-            return resultMessage;
         }
 
         [LuisIntent("GetNews")]
@@ -119,10 +98,10 @@ namespace TravelBot.Dialogs
             {
                 // We have all entities we need so tell the user and call the API
                 await context.PostAsync("I am handling your request to get news from " + location + ".");
-                var news = await CallSearchAPI(location, "news");
+                var news = await api.CallSearchAPI(location, "news");
 
                 // Create and display the news results
-                await context.PostAsync(MakeNewsCards(context, (NewsResult)news));
+                await context.PostAsync(card.MakeNewsCards(context, (NewsResult)news));
                 context.Wait(MessageReceived);
             }
             else
@@ -139,38 +118,11 @@ namespace TravelBot.Dialogs
             await context.PostAsync("I am handling your request to get news from " + location + ".");
 
             // Now that we have the location to search for news about, call the API
-            var news = await CallSearchAPI(location, "news");
+            var news = await api.CallSearchAPI(location, "news");
 
             // Create and display the news results
-            await context.PostAsync(MakeNewsCards(context, (NewsResult)news));
+            await context.PostAsync(card.MakeNewsCards(context, (NewsResult)news));
             context.Wait(MessageReceived);
-        }
-
-        private IMessageActivity MakeNewsCards(IDialogContext context, NewsResult news)
-        {
-            var resultMessage = context.MakeMessage();
-            resultMessage.AttachmentLayout = AttachmentLayoutTypes.Carousel;
-            resultMessage.Attachments = new List<Attachment>();
-            foreach (var item in news.value)
-            {
-                var action = new CardAction();
-                action.Type = "openUrl";
-                action.Value = item.url;
-                HeroCard heroCard = new HeroCard()
-                {
-                    Title = item.name,
-                    Text = item.description,
-                    Images = new List<CardImage>()
-                    {
-                        new CardImage() { Url = item.image.thumbnail.contentUrl }
-                    },
-                    Tap = action,
-                };
-
-                resultMessage.Attachments.Add(heroCard.ToAttachment());
-            }
-
-            return resultMessage;
         }
 
         [LuisIntent("GetWeather")]
@@ -192,14 +144,14 @@ namespace TravelBot.Dialogs
                 await context.PostAsync("I am handling your weather search in " + location + " on " + date.ToShortDateString());
 
                 // Call API and determine which card to build
-                var weather = await CallWeatherAPI(location, date);
+                var weather = await api.CallWeatherAPI(location, date);
                 if (weather.GetType().Name == "TenDayForecastResult")
                 {
-                    await context.PostAsync(MakeWeatherCards(context, (TenDayForecastResult)weather, givenVals));
+                    await context.PostAsync(card.MakeWeatherCards(context, (TenDayForecastResult)weather, givenVals));
                 }
                 else
                 {
-                    await context.PostAsync(MakeWeatherCards(context, (AverageForecastResult)weather, givenVals));
+                    await context.PostAsync(card.MakeWeatherCards(context, (AverageForecastResult)weather, givenVals));
                 }
 
                 // Create and display the news results
@@ -212,55 +164,20 @@ namespace TravelBot.Dialogs
             }
         }
 
-        private IMessageActivity MakeWeatherCards(IDialogContext context, TenDayForecastResult weather, Weather givenVals)
-        {
-            var resultMessage = context.MakeMessage();
-            resultMessage.AttachmentLayout = AttachmentLayoutTypes.Carousel;
-            resultMessage.Attachments = new List<Attachment>();
-
-            // Find the correct date returned from the API and make the card
-            var result = weather.forecast.simpleforecast.forecastday.Where(f => f.date.day == givenVals.Date.Day).FirstOrDefault();
-            HeroCard heroCard = new HeroCard()
-            {
-                Title = "WEATHER IN " + givenVals.Location.ToUpper(),
-                Text = String.Format("The high for {0}/{1} is {2} degrees F and the low is {3} degrees F. Overall conditions are {4}.", 
-                                        result.date.month, result.date.day, result.high.fahrenheit, result.low.fahrenheit, result.conditions.ToLower()),
-            };
-            resultMessage.Attachments.Add(heroCard.ToAttachment());
-
-            return resultMessage;
-        }
-
-        private IMessageActivity MakeWeatherCards(IDialogContext context, AverageForecastResult weather, Weather givenVals)
-        {
-            var resultMessage = context.MakeMessage();
-            resultMessage.AttachmentLayout = AttachmentLayoutTypes.Carousel;
-            resultMessage.Attachments = new List<Attachment>();
-            HeroCard heroCard = new HeroCard()
-            {
-                Title = "WEATHER IN " + givenVals.Location.ToUpper(),
-                Text = String .Format("The average high for {0} is {1} degrees F and the average low is {2} degrees F.", 
-                           weather.trip.period_of_record.date_start.date.monthname, weather.trip.temp_high.avg.F, weather.trip.temp_low.avg.F),
-            };
-            resultMessage.Attachments.Add(heroCard.ToAttachment());
-
-            return resultMessage;
-        }
-
         private async Task HandleWeatherSearch(IDialogContext context, IAwaitable<Weather> result)
         {
             var weather = await result;
             await context.PostAsync("I am handling your weather search in " + weather.Location + " on " + weather.Date.ToShortDateString());
 
-            var res = await CallWeatherAPI(weather.Location, weather.Date);
+            var res = await api.CallWeatherAPI(weather.Location, weather.Date);
 
             if (res.GetType().Name == "TenDayForecastResult")
             {
-                await context.PostAsync(MakeWeatherCards(context, (TenDayForecastResult)res, weather));
+                await context.PostAsync(card.MakeWeatherCards(context, (TenDayForecastResult)res, weather));
             }
             else
             {
-                await context.PostAsync(MakeWeatherCards(context, (AverageForecastResult)res, weather));
+                await context.PostAsync(card.MakeWeatherCards(context, (AverageForecastResult)res, weather));
             }
 
             context.Wait(MessageReceived);
@@ -321,121 +238,6 @@ namespace TravelBot.Dialogs
             }
 
             return date;
-        }
-
-        private async Task<object> CallSearchAPI(string location, string searchType)
-        {
-            var client = new HttpClient();
-            var queryString = HttpUtility.ParseQueryString(string.Empty);
-
-            // Request headers
-            client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", WebConfigurationManager.AppSettings["CogServices:NewsSearch:ID"]);
-
-            // Request parameters
-            queryString["count"] = "4";
-            queryString["offset"] = "0";
-            queryString["mkt"] = "en-US";
-            queryString["safeSearch"] = "Moderate";
-            string uri = null;
-            if (searchType == "news")
-            {
-                queryString["q"] = "Travel related news about " + location;
-                uri = "https://api.cognitive.microsoft.com/bing/v5.0/news/search?" + queryString;
-
-            }
-            else if (searchType == "destination")
-            {
-                queryString["q"] = "Travel desitnations in " + location;
-                uri = "https://api.cognitive.microsoft.com/bing/v5.0/search?" + queryString;
-            }
-            var response = await client.GetAsync(uri);
-
-            HttpContent resultContent = response.Content;
-            var result = await resultContent.ReadAsStringAsync();
-
-            // Populate a JSON object with the results of the API call
-            if (searchType == "news")
-            {
-                NewsResult news = new NewsResult();
-                JsonConvert.PopulateObject(result, news);
-                return news;
-            }
-            else if (searchType == "destination")
-            {
-                DestinationResult destination = new DestinationResult();
-                JsonConvert.PopulateObject(result, destination);
-                return destination;
-            }
-
-            return null;
-        }
-
-        private async Task<object> CallWeatherAPI(string location, DateTime date)
-        {
-            // Format the location
-            var formatLoc = location.ToLower();
-            formatLoc = formatLoc.Replace(" ", "_");
-
-            // Decide which API to call
-            string type;
-            var uri = "http://api.wunderground.com/api/99739e85768e55e2/";
-            var futureDate = DateTime.UtcNow.AddDays(10);
-            if (date <= futureDate)
-            {
-                uri += String.Format("forecast10day/q/CA/{0}.json", formatLoc);
-                type = "10day";
-            }
-            else
-            {
-                // Determine month1 and day1 format
-                var month1 = date.Month.ToString();
-                var day1 = date.Day.ToString();
-                if(date.Month < 10)
-                {
-                    month1 = "0" + month1;
-                }
-                if (date.Day < 10)
-                {
-                    day1 = "0" + day1;
-                }
-                // Determine month2 and day2 format
-                var date2 = date.AddDays(29);
-                var month2 = date2.Month.ToString();
-                var day2 = date2.Day.ToString();
-                if (date2.Month < 10)
-                {
-                    month2 = "0" + month2;
-                }
-                if (date2.Day < 10)
-                {
-                    day2 = "0" + day2;
-                }
-
-                // Determine date range
-                var range = String.Format("{0}{1}{2}{3}", 
-                                month1, day1, month2, day2);
-                uri += String.Format("planner_{0}/q/CA/{1}.json", range, formatLoc);
-                type = "average";
-            }
-
-            var client = new HttpClient();
-            var response = await client.GetAsync(uri);
-
-            HttpContent resultContent = response.Content;
-            var result = await resultContent.ReadAsStringAsync();
-
-            if (type == "10day")
-            {
-                TenDayForecastResult forecast = new TenDayForecastResult();
-                JsonConvert.PopulateObject(result, forecast);
-                return forecast;
-            }
-            else
-            {
-                AverageForecastResult forecast = new AverageForecastResult();
-                JsonConvert.PopulateObject(result, forecast);
-                return forecast;
-            }
         }
     }
 }

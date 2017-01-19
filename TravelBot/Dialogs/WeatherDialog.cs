@@ -109,12 +109,5 @@ namespace TravelBot.Dialogs
                 }
             }
         }
-
-        [Serializable]
-        public class Weather
-        {
-            public string Location { get; set; }
-            public DateTime Date { get; set; }
-        }
     }
 }

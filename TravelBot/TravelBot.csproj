@@ -118,18 +118,23 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Dialogs\MakeCards_old.cs" />
+    <Content Include="Dialogs\MakeAPICalls_old.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="Controllers\MessagesController.cs" />
+    <Compile Include="App_Code\MakeAPICalls.cs" />
+    <Compile Include="App_Code\MakeCards.cs" />
     <Compile Include="Dialogs\RootDialog.cs" />
+    <Compile Include="App_Code\Weather.cs" />
     <Compile Include="Dialogs\WeatherDialog.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
-    <Compile Include="App_Code\AverageForecastResult.cs" />
-    <Compile Include="App_Code\DestinationResult.cs" />
-    <Compile Include="App_Code\MiscJsonClasses.cs" />
-    <Compile Include="App_Code\NewsResult.cs" />
-    <Compile Include="App_Code\TenDayForecastResult.cs" />
+    <Compile Include="App_Code\JsonSerialization\AverageForecastResult.cs" />
+    <Compile Include="App_Code\JsonSerialization\DestinationResult.cs" />
+    <Compile Include="App_Code\JsonSerialization\MiscJsonClasses.cs" />
+    <Compile Include="App_Code\JsonSerialization\NewsResult.cs" />
+    <Compile Include="App_Code\JsonSerialization\TenDayForecastResult.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
