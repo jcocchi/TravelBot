@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 
-namespace TravelBot.JsonDeserialization
+namespace TravelBot.App_Code
 {
     public class FeaturesPlanner
     {

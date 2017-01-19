@@ -19,7 +19,7 @@ namespace TravelBot
         {
             if (activity.Type == ActivityTypes.Message)
             {
-                await Conversation.SendAsync(activity, () => new DefaultDialog());
+                await Conversation.SendAsync(activity, () => new RootDialog());
             }
             else
             {

@@ -9,16 +9,16 @@ using Microsoft.Bot.Connector;
 using System.Web.Configuration;
 using System.Net.Http;
 using System.Web;
-using TravelBot.JsonDeserialization;
 using Newtonsoft.Json;
 using System.Threading;
+using TravelBot.App_Code;
 using static TravelBot.Dialogs.WeatherDialog;
 
 namespace TravelBot.Dialogs
 {
     [Serializable]
     [LuisModel("138ad2b9-9738-4871-ba7a-93c1121aff70", "efe598955c1e4f4f93a89e018d468e0a")]
-    public class DefaultDialog : LuisDialog<object>
+    public class RootDialog : LuisDialog<object>
     {
         private static readonly string luisCountry = "builtin.geography.country";
         private static readonly string luisState = "builtin.geography.us_state";
@@ -182,14 +182,14 @@ namespace TravelBot.Dialogs
             // We know there is only one action for this function to search the weather
             var date = GetDate(entities);
             var location = GetLocation(new List<EntityRecommendation>(result.Entities));
+            var givenVals = new Weather()
+            {
+                Date = date,
+                Location = location
+            };
             if (location != null && date.ToString() != defaultDate)
             {
                 await context.PostAsync("I am handling your weather search in " + location + " on " + date.ToShortDateString());
-                var givenVals = new Weather()
-                {
-                    Date = date,
-                    Location = location
-                };
 
                 // Call API and determine which card to build
                 var weather = await CallWeatherAPI(location, date);
@@ -208,7 +208,7 @@ namespace TravelBot.Dialogs
             else
             {
                 // We need to prompt the user for a location, a date or both
-                context.Call<Weather>(new WeatherDialog(entities), HandleWeatherSearch); 
+                context.Call<Weather>(new WeatherDialog(givenVals), HandleWeatherSearch); 
             }
         }
 
@@ -223,7 +223,7 @@ namespace TravelBot.Dialogs
             HeroCard heroCard = new HeroCard()
             {
                 Title = "WEATHER IN " + givenVals.Location.ToUpper(),
-                Text = String.Format("The high for {0}/{1} is {2} and the low is {3}. Overall conditions are {4}.", 
+                Text = String.Format("The high for {0}/{1} is {2} degrees F and the low is {3} degrees F. Overall conditions are {4}.", 
                                         result.date.month, result.date.day, result.high.fahrenheit, result.low.fahrenheit, result.conditions.ToLower()),
             };
             resultMessage.Attachments.Add(heroCard.ToAttachment());
@@ -239,7 +239,7 @@ namespace TravelBot.Dialogs
             HeroCard heroCard = new HeroCard()
             {
                 Title = "WEATHER IN " + givenVals.Location.ToUpper(),
-                Text = String .Format("The average high for {0} is {1} and the average low is {2}.", 
+                Text = String .Format("The average high for {0} is {1} degrees F and the average low is {2} degrees F.", 
                            weather.trip.period_of_record.date_start.date.monthname, weather.trip.temp_high.avg.F, weather.trip.temp_low.avg.F),
             };
             resultMessage.Attachments.Add(heroCard.ToAttachment());
@@ -305,7 +305,7 @@ namespace TravelBot.Dialogs
                     DateTime.TryParse(dateEntity.Resolution.Values.FirstOrDefault(), out date);
                 }
                 // If the date is still the default date, the user said a month name like "May"
-                if (date.ToString() == defaultDate) 
+                if (date.ToString() == defaultDate)
                 {
                     // Right now the date looks like "XXXX-04", we only want the month number so trim the rest
                     var trimMonth = dateEntity.Resolution.Values.FirstOrDefault().Remove(0, 5);
@@ -314,7 +314,7 @@ namespace TravelBot.Dialogs
                 }
                 // If the user enters a date in the future, but doesn't specify the year it will be assumed to be this year
                 // Because travel happens in the future not the past, add a year to account for this
-                if(date < DateTime.UtcNow)
+                if (date < DateTime.UtcNow)
                 {
                     date = date.AddYears(1);
                 }

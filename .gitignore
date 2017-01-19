@@ -1,0 +1,6 @@
+.vs/
+TravelBot.sln
+packages/
+TravelBot/bin/
+TravelBot/obj/
+TravelBot/Travelbot.csproj.user

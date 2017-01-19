@@ -120,16 +120,16 @@
   <ItemGroup>
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="Controllers\MessagesController.cs" />
-    <Compile Include="Dialogs\DefaultDialog.cs" />
+    <Compile Include="Dialogs\RootDialog.cs" />
     <Compile Include="Dialogs\WeatherDialog.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
-    <Compile Include="JsonDeserialization\AverageForecastResult.cs" />
-    <Compile Include="JsonDeserialization\DestinationResult.cs" />
-    <Compile Include="JsonDeserialization\MiscJsonClasses.cs" />
-    <Compile Include="JsonDeserialization\NewsResult.cs" />
-    <Compile Include="JsonDeserialization\TenDayForecastResult.cs" />
+    <Compile Include="App_Code\AverageForecastResult.cs" />
+    <Compile Include="App_Code\DestinationResult.cs" />
+    <Compile Include="App_Code\MiscJsonClasses.cs" />
+    <Compile Include="App_Code\NewsResult.cs" />
+    <Compile Include="App_Code\TenDayForecastResult.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

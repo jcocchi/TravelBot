@@ -9,40 +9,23 @@ using Microsoft.Bot.Builder.FormFlow;
 using Microsoft.Bot.Builder.Luis.Models;
 using System.Text.RegularExpressions;
 using Microsoft.Bot.Builder.Dialogs.Internals;
+using TravelBot.App_Code;
+using static TravelBot.Dialogs.WeatherDialog;
 
 namespace TravelBot.Dialogs
 {
     [Serializable]
     public class WeatherDialog : IDialog<Weather>
     {
-        private static readonly string luisCity = "builtin.geography.city";
-        private static readonly string luisDate = "builtin.datetime.date";
         private static readonly string defaultDate = "1/1/0001 12:00:00 AM";
         private static readonly string datePrompt = "Please enter the date you want to get the weather for in MM/DD format.";
         private static readonly string locationPrompt = "Please enter a US city to get the weather for.";
 
         Weather weather;
 
-        public WeatherDialog(List<EntityRecommendation> entities)
+        public WeatherDialog(Weather weather)
         {
-            weather = new Weather();
-            foreach (var entity in entities)
-            {
-                if (entity.Type == luisCity)
-                {
-                    weather.Location = entity.Entity;
-                }
-                else if (entity.Type == luisDate)
-                {
-                    var temp = new DateTime();
-                    DateTime.TryParse(entity.Entity, out temp);
-                    if (temp.ToString() == defaultDate)
-                    {
-                        DateTime.TryParse(entity.Resolution.Values.FirstOrDefault(), out temp);
-                    }
-                    weather.Date = temp;
-                }
-            }
+            this.weather = weather;
         }
 
         public async Task StartAsync(IDialogContext context)
@@ -126,12 +109,12 @@ namespace TravelBot.Dialogs
                 }
             }
         }
-    }
 
-    [Serializable]
-    public class Weather
-    {
-        public string Location { get; set; }
-        public DateTime Date { get; set; }
+        [Serializable]
+        public class Weather
+        {
+            public string Location { get; set; }
+            public DateTime Date { get; set; }
+        }
     }
 }

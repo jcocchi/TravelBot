@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.Collections.Generic;
 
-namespace TravelBot.JsonDeserialization
+namespace TravelBot.App_Code
 {
     public class NewsValue
     {
