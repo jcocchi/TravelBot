@@ -118,8 +118,6 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Dialogs\MakeCards_old.cs" />
-    <Content Include="Dialogs\MakeAPICalls_old.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="Controllers\MessagesController.cs" />
     <Compile Include="App_Code\MakeAPICalls.cs" />

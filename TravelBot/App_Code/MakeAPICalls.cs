@@ -1,19 +1,16 @@
 ﻿using System;
-using System.Web;
-using System.Linq;
 using Newtonsoft.Json;
-using System.Net.Http;
 using TravelBot.App_Code;
 using System.Threading.Tasks;
-using Microsoft.Bot.Connector;
 using System.Web.Configuration;
-using System.Collections.Generic;
+using System.Net.Http;
+using System.Web;
 
 namespace TravelBot.Dialogs
 {
     internal class MakeAPICalls
     {
-        public async Task<object> CallSearchAPI(string location, string searchType)
+        internal async Task<object> CallSearchAPI(string location, string searchType)
         {
             var client = new HttpClient();
             var queryString = HttpUtility.ParseQueryString(string.Empty);
@@ -60,7 +57,7 @@ namespace TravelBot.Dialogs
             return null;
         }
 
-        public async Task<object> CallWeatherAPI(string location, DateTime date)
+        internal async Task<object> CallWeatherAPI(string location, DateTime date)
         {
             // Format the location
             var formatLoc = location.ToLower();

@@ -1,18 +1,12 @@
 ﻿using System;
 using System.Linq;
+using System.Net.Http;
+using TravelBot.App_Code;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Bot.Builder.Luis;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Builder.Luis.Models;
-using Microsoft.Bot.Connector;
-using System.Web.Configuration;
-using System.Net.Http;
-using System.Web;
-using Newtonsoft.Json;
-using System.Threading;
-using TravelBot.App_Code;
-using static TravelBot.Dialogs.WeatherDialog;
 
 namespace TravelBot.Dialogs
 {

@@ -10,7 +10,7 @@ namespace TravelBot.Dialogs
     [Serializable]
     internal class MakeCards
     {
-        public IMessageActivity MakeDestinationCards(IDialogContext context, DestinationResult dest)
+        internal IMessageActivity MakeDestinationCards(IDialogContext context, DestinationResult dest)
         {
             var resultMessage = context.MakeMessage();
             resultMessage.AttachmentLayout = AttachmentLayoutTypes.Carousel;
@@ -33,7 +33,7 @@ namespace TravelBot.Dialogs
             return resultMessage;
         }
 
-        public IMessageActivity MakeNewsCards(IDialogContext context, NewsResult news)
+        internal IMessageActivity MakeNewsCards(IDialogContext context, NewsResult news)
         {
             var resultMessage = context.MakeMessage();
             resultMessage.AttachmentLayout = AttachmentLayoutTypes.Carousel;
@@ -60,7 +60,7 @@ namespace TravelBot.Dialogs
             return resultMessage;
         }
 
-        public IMessageActivity MakeWeatherCards(IDialogContext context, TenDayForecastResult weather, Weather givenVals)
+        internal IMessageActivity MakeWeatherCards(IDialogContext context, TenDayForecastResult weather, Weather givenVals)
         {
             var resultMessage = context.MakeMessage();
             resultMessage.AttachmentLayout = AttachmentLayoutTypes.Carousel;
@@ -79,7 +79,7 @@ namespace TravelBot.Dialogs
             return resultMessage;
         }
 
-        public IMessageActivity MakeWeatherCards(IDialogContext context, AverageForecastResult weather, Weather givenVals)
+        internal IMessageActivity MakeWeatherCards(IDialogContext context, AverageForecastResult weather, Weather givenVals)
         {
             var resultMessage = context.MakeMessage();
             resultMessage.AttachmentLayout = AttachmentLayoutTypes.Carousel;
