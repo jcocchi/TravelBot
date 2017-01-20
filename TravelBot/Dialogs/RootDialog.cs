@@ -61,7 +61,7 @@ namespace TravelBot.Dialogs
             var location = GetLocation(context, new List<EntityRecommendation>(result.Entities));
 
             // If the user didn't enter a location this time, have they entered one previously in this conversation?
-            if (location == null)
+            if (location != null)
             {
                 // We have all entities we need because the action was triggered
                 // Get the location and call the API
