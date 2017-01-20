@@ -25,6 +25,8 @@ namespace TravelBot.Dialogs
         private static readonly string luisCity = "builtin.geography.city";
         private static readonly string luisDate = "builtin.datetime.date";
         private static readonly string defaultDate = "1/1/0001 12:00:00 AM";
+        private static readonly string LocationKey = "LocKey";
+        private static readonly string DateKey = "Date";
 
         [LuisIntent("")]
         public async Task None(IDialogContext context, LuisResult result)
@@ -39,8 +41,8 @@ namespace TravelBot.Dialogs
 
             await context.PostAsync("Hello! How can I assist you with your travels today?\n" +
                                         "- Search for a travel destination\n" +
-                                        "- Check the weather in a location for a specific date\n" +
-                                        "- Check the current news in a location\n");
+                                        "- Check the current news in a location\n" +
+                                        "- Check the weather in a location for a specific date\n");
             context.Wait(MessageReceived);
         }
 
@@ -55,8 +57,11 @@ namespace TravelBot.Dialogs
         [LuisIntent("FindDesitnation")]
         public async Task FindDestination(IDialogContext context, LuisResult result)
         {
-            var location = GetLocation(new List<EntityRecommendation>(result.Entities));
-            if (location != null)
+            // Did the user enter a location?
+            var location = GetLocation(context, new List<EntityRecommendation>(result.Entities));
+
+            // If the user didn't enter a location this time, have they entered one previously in this conversation?
+            if (location == null)
             {
                 // We have all entities we need because the action was triggered
                 // Get the location and call the API
@@ -114,7 +119,7 @@ namespace TravelBot.Dialogs
         [LuisIntent("GetNews")]
         public async Task GetNews(IDialogContext context, LuisResult result)
         {
-            var location = GetLocation(new List<EntityRecommendation>(result.Entities));
+            var location = GetLocation(context, new List<EntityRecommendation>(result.Entities));
             if (location != null)
             {
                 // We have all entities we need so tell the user and call the API
@@ -181,7 +186,7 @@ namespace TravelBot.Dialogs
             // We are only looking at the first intent in the array because that represents this function
             // We know there is only one action for this function to search the weather
             var date = GetDate(entities);
-            var location = GetLocation(new List<EntityRecommendation>(result.Entities));
+            var location = GetLocation(context, new List<EntityRecommendation>(result.Entities));
             var givenVals = new Weather()
             {
                 Date = date,
@@ -266,28 +271,34 @@ namespace TravelBot.Dialogs
             context.Wait(MessageReceived);
         }
 
-        private string GetLocation(List<EntityRecommendation> entities)
+        private string GetLocation(IDialogContext context, List<EntityRecommendation> entities)
         {
             // Find the location the user specified
-            EntityRecommendation location = null;
+            string location = null;
             if (entities.Any((entity) => entity.Type == luisCountry))
             {
-                location = entities.Where((entity) => entity.Type == luisCountry).First();
+                location = entities.Where((entity) => entity.Type == luisCountry).First().Entity;
             }
             else if (entities.Any((entity) => entity.Type == luisState))
             {
-                location = entities.Where((entity) => entity.Type == luisState).First();
+                location = entities.Where((entity) => entity.Type == luisState).First().Entity;
             }
             else if (entities.Any((entity) => entity.Type == luisCity))
             {
-                location = entities.Where((entity) => entity.Type == luisCity).First();
+                location = entities.Where((entity) => entity.Type == luisCity).First().Entity;
             }
+            // If the user didn't specifiy a location this time, is there a location already stored for them in this conversation?
             else
             {
-                return null;
+                context.ConversationData.TryGetValue(LocationKey, out location);
             }
 
-            return location.Entity;
+            // Reset location for the conversation and send back to dialog
+            // If the user didn't enter a location and hadn't in the past, this will be set to null
+            // If the user entered a new location, this will be set to that location
+            // If the user didn't enter a location this time, but had in the past, this will be reset to the preexisting value
+            context.ConversationData.SetValue(LocationKey, location);
+            return location;
         }
 
         private DateTime GetDate(List<EntityRecommendation> entities)
