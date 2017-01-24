@@ -1,5 +1,6 @@
 .vs/
 TravelBot.sln
+TravelBot_Node/node_modules
 packages/
 TravelBot/bin/
 TravelBot/obj/

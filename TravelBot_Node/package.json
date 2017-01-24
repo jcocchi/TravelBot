@@ -1,0 +1,26 @@
+{
+  "name": "travelbot_node",
+  "version": "1.0.0",
+  "description": "A bot to help you plan a trip",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jcocchi/TravelBot.git"
+  },
+  "keywords": [
+    "npm"
+  ],
+  "author": "Justine Cocchi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jcocchi/TravelBot/issues"
+  },
+  "homepage": "https://github.com/jcocchi/TravelBot#readme",
+  "dependencies": {
+    "botbuilder": "^3.5.4",
+    "restify": "^4.3.0"
+  }
+}

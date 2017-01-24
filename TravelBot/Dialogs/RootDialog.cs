@@ -26,7 +26,6 @@ namespace TravelBot.Dialogs
         private static readonly string luisDate = "builtin.datetime.date";
         private static readonly string defaultDate = "1/1/0001 12:00:00 AM";
         private static readonly string LocationKey = "LocKey";
-        private static readonly string DateKey = "Date";
 
         [LuisIntent("")]
         public async Task None(IDialogContext context, LuisResult result)
