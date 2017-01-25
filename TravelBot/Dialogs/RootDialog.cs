@@ -53,7 +53,7 @@ namespace TravelBot.Dialogs
             context.Wait(MessageReceived);
         }
 
-        [LuisIntent("FindDesitnation")]
+        [LuisIntent("FindDestination")]
         public async Task FindDestination(IDialogContext context, LuisResult result)
         {
             // Did the user enter a location?
