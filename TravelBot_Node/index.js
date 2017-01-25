@@ -35,22 +35,47 @@ bot.dialog('/', new builder.IntentDialog({ recognizers: [recognizer] })
                             '- Check the weather in a location for a specific date\n');
         }
     )
-    .matches('FindDestination', [
+    .matches('FindDesitnation', [
         function (session, args) {
-            session.send('Searching for travel destinations!');
+            var location = getLocation(builder, args);
+
+            session.send('Searching for travel destinations in %s!', location);            
         }
     ])
     .matches('GetNews', [
         function (session, args) {
-            session.send('Searching for current news !');
+            var location = getLocation(builder, args)            
+            
+            session.send('Searching for current news in %s!', location);
         }
     ])
     .matches('GetWeather', [
         function (session, args) {
-            session.send('Searching for weather!');
+            var location = getLocation(builder, args);
+            
+            session.send('Searching for weather in %s!', location);
         }
     ])
     .matches('ThankYou', builder.DialogAction.send('You\'re welcome! To see what else I can help you with type \"help\".'))
     .onDefault((session) => {
         session.send('Sorry, I did not understand \'%s\'. Type \"help\" if you need assistance.', session.message.text);
     }));
+
+// Helpers
+function getLocation(builder, args){
+    var loc;
+    // First check if there is a country entity
+    loc = builder.EntityRecognizer.findEntity(args.entities, 'builtin.geography.country');
+    // Then check if there is a us state entity
+    if (loc == null){
+        loc = builder.EntityRecognizer.findEntity(args.entities, 'builtin.geography.us_state');
+    }
+    // Then check if there is a city entity
+    if (loc == null){
+        loc = builder.EntityRecognizer.findEntity(args.entities, 'builtin.geography.city');
+    }
+
+    // This will either be the location entered
+    // or there was no location found and it will be null   
+    return loc.entity;
+}
