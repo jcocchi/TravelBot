@@ -1,6 +1,7 @@
 .vs/
 TravelBot.sln
 TravelBot_Node/node_modules
+TravelBot_Node/.vscode
 packages/
 TravelBot/bin/
 TravelBot/obj/
